@@ -1,0 +1,81 @@
+<html>
+
+<video id="video" autoplay style="display: none;"></video>
+<canvas id="preview"></canvas><button onclick="captureImage()">captureImage</button>
+<br/>
+<canvas id="cvs-for-scan"></canvas>
+
+
+  <!-- the javascript bindings -->
+  <script src="readqr.js"></script>
+  <script>
+    read_qr_wasm_bindgen("readqr_bg.wasm")
+      .then(() => {
+        console.log('wasm_bindgen is loaded!');
+        const { decode_qr } = read_qr_wasm_bindgen;
+      })
+      .catch(console.error);
+
+    const video = document.getElementById('video');
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+            setInterval(captureImage, 300);
+        });
+
+    function captureImage() {
+        const { decode_qr } = read_qr_wasm_bindgen;
+        const video = document.getElementById('video');
+        const previewCvs = document.getElementById('preview');
+        const scale = 1; // we scale the image down to improve performance
+
+        previewCvs.width = video.videoWidth * scale;
+        previewCvs.height = video.videoHeight * scale;
+        let edgeLen = (previewCvs.width < previewCvs.height ? previewCvs.width : previewCvs.height) / 2;
+        
+        const ctx = previewCvs.getContext("2d");
+            
+        ctx.drawImage(video, 0, 0, previewCvs.width, previewCvs.height);
+
+        ctx.shadowColor = "#d53";
+        ctx.shadowBlur = 20;
+        ctx.lineJoin = "bevel";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "green";
+        
+        const startX = (previewCvs.width - edgeLen)/2;
+        const startY = (previewCvs.height - edgeLen)/2;
+
+
+        ctx.strokeRect(startX-3,startY-3,edgeLen+6,edgeLen+6);
+
+        let cvsForScan = document.getElementById("cvs-for-scan");
+        cvsForScan.width = edgeLen;
+        cvsForScan.height = edgeLen;
+        cvsForScan.getContext("2d").drawImage(previewCvs, startX, startY,cvsForScan.width, cvsForScan.height, 0, 0, cvsForScan.width, cvsForScan.height);
+
+        cvsForScan.toBlob(blob => {
+            const reader = new FileReader();
+
+            // 注册读取完成的回调
+            reader.addEventListener("loadend", () => {
+            const arrayBuffer = reader.result;
+
+            try {
+                const output = decode_qr(new Uint8Array(arrayBuffer));
+                console.log("output of decode_qr:", output);
+            } catch(e) {
+                
+            }
+            
+            });
+
+            reader.readAsArrayBuffer(blob);
+        });
+    };
+
+  </script>
+
+
+</html>

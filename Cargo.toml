@@ -1,0 +1,16 @@
+[package]
+name = "readqr"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+# Define the crate-type as ["cdylib"] （c dynamic library）.This is required when we are targeting Wasm.
+crate-type = ["cdylib"]
+
+[dependencies]
+rqrr = "0.2.0"
+image = "0.21.2"
+wasm-bindgen = "0.2.47"
+
+[profile.release]
+lto = true
